@@ -679,14 +679,14 @@ class Numworks {
      * @return  The storage, as a Blob.
      */
     async __retrieveStorage(address, size, version) {
-        if (version >= "24.2.0") {
+        if (version >= "24.0.0") {
             await this.device.device_.selectAlternateInterface(this.device.intfNumber, 1);
         }
 
         this.device.startAddress = address;
         let data = await this.device.do_upload(this.transferSize, size + 8);
 
-        if (version >= "24.2.0") {
+        if (version >= "24.0.0") {
             await this.device.device_.selectAlternateInterface(this.device.intfNumber, 0);
         }
 
@@ -701,14 +701,14 @@ class Numworks {
      * @param   version     Calculator version
      */
     async __flashStorage(address, data, version) {
-        if (version >= "24.2.0") {
+        if (version >= "24.0.0") {
             await this.device.device_.selectAlternateInterface(this.device.intfNumber, 1);
         }
 
         this.device.startAddress = address;
         await this.device.do_download(this.transferSize, data, false);
 
-        if (version >= "24.2.0") {
+        if (version >= "24.0.0") {
             await this.device.device_.selectAlternateInterface(this.device.intfNumber, 0);
         }
     }

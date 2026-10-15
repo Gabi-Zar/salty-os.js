@@ -257,8 +257,6 @@ class Numworks {
                     await this.__switchAltInterfaces();
                     return originalDownload(...args);
                 };
-                console.log(device.device_.configurations[0].interfaces[0].alternates.length)
-                console.log(device.device_.configurations[0].interfaces[0].alternates)
             }
         }
 
@@ -275,10 +273,8 @@ class Numworks {
     async __switchAltInterfaces() {
         if (this.device.device_.configurations[0].interfaces[0].alternates.length > 1) {
             if (0x20000000 <= this.device.startAddress && this.device.startAddress <= 0x2404FFFF) {
-                console.log("RAM")
                 await this.device.device_.selectAlternateInterface(this.device.intfNumber, 1);
             } else {
-                console.log("Flash")
                 await this.device.device_.selectAlternateInterface(this.device.intfNumber, 0);
             }
         }

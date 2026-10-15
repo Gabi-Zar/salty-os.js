@@ -213,6 +213,11 @@ class Numworks {
                 device = new DFUse.Device(device.device_, device.settings);
                 if (device.memoryInfo) {
                     // We have to add RAM manually, because the device doesn't expose that normally
+                    // TODO: Recent Epsilon versions expose the RAM on a
+                    // different alt interface.
+                    // We should extract the memoryInfo from both interfaces
+                    // instead of hardcoding, and automatically switch to the
+                    // right one
                     device.memoryInfo.segments.unshift({
                         start: 0x20000000,
                         sectorSize: 1024,
@@ -222,8 +227,6 @@ class Numworks {
                         writable: true
                     });
 
-                    // Also add the N0120 RAM, even if not used as we don't want to bother checking the model yet
-                    // TODO: Improve this
                     device.memoryInfo.segments.unshift({
                         start: 0x24000000,
                         sectorSize: 1024,
@@ -233,6 +236,29 @@ class Numworks {
                         writable: true
                     });
                 }
+
+                // Newer Epsilon versions expose 2 USB alt interface for DFU,
+                // and we need to know if we can/need to switch interfaces
+                // before reading the version (getPlatformInfo).
+                // WebDFU doesn't support automatic interface switching, so we
+                // need our own wrapper around its methods
+                // Some Upsilon.js users (e.g. Upsilon Website) directly use
+                // do_upload, so automatic switching is required for backward
+                // compatibility
+                const originalUpload = device.do_upload.bind(device);
+                const originalDownload = device.do_download.bind(device);
+
+                device.do_upload = async (...args) => {
+                    await this.__switchAltInterfaces();
+                    return originalUpload(...args);
+                };
+
+                device.do_download = async (...args) => {
+                    await this.__switchAltInterfaces();
+                    return originalDownload(...args);
+                };
+                console.log(device.device_.configurations[0].interfaces[0].alternates.length)
+                console.log(device.device_.configurations[0].interfaces[0].alternates)
             }
         }
 
@@ -244,6 +270,18 @@ class Numworks {
         device.logProgress = console.log;
 
         return device;
+    }
+
+    async __switchAltInterfaces() {
+        if (this.device.device_.configurations[0].interfaces[0].alternates.length > 1) {
+            if (0x20000000 <= this.device.startAddress && this.device.startAddress <= 0x2404FFFF) {
+                console.log("RAM")
+                await this.device.device_.selectAlternateInterface(this.device.intfNumber, 1);
+            } else {
+                console.log("Flash")
+                await this.device.device_.selectAlternateInterface(this.device.intfNumber, 0);
+            }
+        }
     }
 
     __readFString(dv, index, len) {
@@ -679,16 +717,8 @@ class Numworks {
      * @return  The storage, as a Blob.
      */
     async __retrieveStorage(address, size, version) {
-        if (version >= "24.0.0") {
-            await this.device.device_.selectAlternateInterface(this.device.intfNumber, 1);
-        }
-
         this.device.startAddress = address;
         let data = await this.device.do_upload(this.transferSize, size + 8);
-
-        if (version >= "24.0.0") {
-            await this.device.device_.selectAlternateInterface(this.device.intfNumber, 0);
-        }
 
         return data
     }
@@ -701,16 +731,8 @@ class Numworks {
      * @param   version     Calculator version
      */
     async __flashStorage(address, data, version) {
-        if (version >= "24.0.0") {
-            await this.device.device_.selectAlternateInterface(this.device.intfNumber, 1);
-        }
-
         this.device.startAddress = address;
         await this.device.do_download(this.transferSize, data, false);
-
-        if (version >= "24.0.0") {
-            await this.device.device_.selectAlternateInterface(this.device.intfNumber, 0);
-        }
     }
 
     /**

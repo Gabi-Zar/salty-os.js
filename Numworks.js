@@ -7,6 +7,12 @@ var Storage = require("./Storage");
 var Recovery = require("./Recovery");
 
 const AUTOCONNECT_DELAY = 1000;
+const SLOT_START = {
+    A: 0x90000000,
+    B: 0x90400000,
+};
+const HEADER_OFFSET = 0x8;
+const USERLAND_OFFSETS = [0x10000, 0x20000];
 
 /**
  * Class handling communication with a Numworks
@@ -576,6 +582,60 @@ class Numworks {
         return data;
     }
 
+    async __readSlot(kernelHeaderAddress, userlandCandidates) {
+        try {
+            // Kernel header
+            this.device.startAddress = kernelHeaderAddress;
+            let blob = await this.device.do_upload(this.transferSize, 0x64);
+            const kernel = this.__parseKernelHeader(await blob.arrayBuffer());
+
+            // Userland header: look for the first candidate address with a valid magik
+            let userland = null;
+            let userlandHeaderAddress = null;
+            for (const address of userlandCandidates) {
+                this.device.startAddress = address;
+                blob = await this.device.do_upload(this.transferSize, 0x128);
+                const buffer = await blob.arrayBuffer();
+
+                if (this.__hasMagik(buffer)) {
+                    userland = this.__parseUserlandHeader(buffer);
+                    userlandHeaderAddress = address;
+                    break;
+                }
+            }
+
+            return {
+                ...kernel,
+                ...userland,
+                valid: Boolean(kernel.magik && userland),
+                kernelHeaderAddress,
+                userlandHeaderAddress,
+            };
+        } catch (error) {
+            console.warn("Unable to read slot headers", error);
+            return { valid: false, magik: false, kernelHeaderAddress };
+        }
+    }
+
+    __getActiveSlotData(pinfo) {
+        if (pinfo["mode"] !== "bootloader") {
+            // Legacy firmware: the infos are at the root
+            return pinfo;
+        }
+
+        const slot = pinfo["slot" + pinfo["slot"]["name"]];
+        if (!slot || !slot.valid) {
+            throw new Error("Active slot is not readable");
+        }
+
+        return slot;
+    }
+
+    __hasMagik(array) {
+        const magiks = [0xF00DC0DE, 0xFEEDC0DE];
+        return magiks.includes(new DataView(array).getUint32(0, false));
+    }
+
 
     /**
      * Get the platforminfo section of the calculator.
@@ -586,36 +646,47 @@ class Numworks {
         // Get the Model. On N0120; address is different
         let model = this.getModel();
 
-        let data = {};
         // Get the slot infos to know the configuration
         this.device.startAddress = model == "0120" ? 0x24000000 : 0x20000000;
         let blob = await this.device.do_upload(this.transferSize, 0x64);
-        let slotInfo = this.__parseSlotInfo(await blob.arrayBuffer());
+        let slotInfo = this.__parseSlotInfo(await blob.arrayBuffer())["slot"];
 
-        if (slotInfo["slot"]["magik"]) {
-            // Read the userland header
-            this.device.startAddress = slotInfo["slot"]["userlandHeader"];
-            blob = await this.device.do_upload(this.transferSize, 0x128);
-            data = await this.__parseUserlandHeader(await blob.arrayBuffer());
-            data["mode"] = "bootloader";
-            data["oldplatform"] = false
-
-            // Read the kernel header
-            this.device.startAddress = slotInfo["slot"]["kernelHeader"];
-            blob = await this.device.do_upload(this.transferSize, 0x64);
-            let data_kernel = await this.__parseKernelHeader(await blob.arrayBuffer());
-
-            // Merge the two objects
-            data = {...data, ...data_kernel};
-        } else if (!data["magik"]) {
+        if (!slotInfo["magik"]) {
             // If no magik is present, it means that there is no slot info, so it's a legacy firmware
             this.device.startAddress = 0x080001c4;
-            const blob = await this.device.do_upload(this.transferSize, 0x128);
-            data = await this.__parsePlatformInfo(await blob.arrayBuffer());
+            blob = await this.device.do_upload(this.transferSize, 0x128);
+            const data = await this.__parsePlatformInfo(await blob.arrayBuffer());
             data["mode"] = "legacy";
             return data;
         }
-        data["slot"] = slotInfo["slot"];
+
+        const activeName = slotInfo["name"];
+
+        const data = {
+            mode: "bootloader",
+            oldplatform: false,
+            model: model,
+            slot: slotInfo,
+        };
+
+        for (const [name, start] of Object.entries(SLOT_START)) {
+            if (name === activeName) {
+                // Active slot: use the real addresses given by the bootloader
+                data["slot" + name] = await this.__readSlot(slotInfo["kernelHeader"], [slotInfo["userlandHeader"]]);
+            } else {
+                // Inactive slot: the userland offset depends on the firmware, so try the known ones
+                data["slot" + name] = await this.__readSlot(
+                    start + HEADER_OFFSET,
+                    USERLAND_OFFSETS.map(offset => start + offset)
+                );
+            }
+        }
+
+        // Active slot which is neither A nor B (eg. "Khi")
+        if (activeName !== undefined && SLOT_START[activeName] === undefined) {
+            data["slot" + activeName] = await this.__readSlot(slotInfo["kernelHeader"], [slotInfo["userlandHeader"]]);
+        }
+
         return data;
     }
 
@@ -740,10 +811,11 @@ class Numworks {
      * @throw   Error       If storage is too big.
      */
     async installStorage(storage, callback) {
-        let pinfo = await this.getPlatformInfo();
+        // The storage location depends on the active slot
+        const active = this.__getActiveSlotData(await this.getPlatformInfo());
 
-        let storage_blob = await storage.encodeStorage(pinfo["storage"]["size"]);
-        await this.__flashStorage(pinfo["storage"]["address"], await storage_blob.arrayBuffer(), pinfo["version"]);
+        let storage_blob = await storage.encodeStorage(active["storage"]["size"]);
+        await this.__flashStorage(active["storage"]["address"], await storage_blob.arrayBuffer(), active["version"]);
 
         callback();
     }
@@ -754,9 +826,10 @@ class Numworks {
      * @return  Storage class describing the storage of the calculator.
      */
     async backupStorage() {
-        let pinfo = await this.getPlatformInfo();
+        // The storage location depends on the active slot
+        const active = this.__getActiveSlotData(await this.getPlatformInfo());
 
-        let storage_blob = await this.__retrieveStorage(pinfo["storage"]["address"], pinfo["storage"]["size"], pinfo["version"]);
+        let storage_blob = await this.__retrieveStorage(active["storage"]["address"], active["storage"]["size"], active["version"]);
 
         let storage = new Numworks.Storage();
 

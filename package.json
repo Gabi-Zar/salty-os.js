@@ -1,5 +1,5 @@
 {
-    "name": "upsilon.js",
+    "name": "salty-os.js",
     "version": "1.5.0",
     "description": "Utility classes to interact with a Numworks calculator using WebUSB.",
     "main": "index.js",
@@ -9,7 +9,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/UpsilonNumworks/upsilon.js.git"
+        "url": "git+https://github.com/Gabi-Zar/salty-os.js.git"
     },
     "keywords": [
         "numworks",
@@ -20,9 +20,9 @@
     "author": "M4x1m3",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/UpsilonNumworks/upsilon.js/issues"
+        "url": "https://github.com/Gabi-Zar/salty-os.js/issues"
     },
-    "homepage": "https://github.com/UpsilonNumworks/upsilon.js/#readme",
+    "homepage": "https://github.com/Gabi-Zar/salty-os.js/#readme",
     "dependencies": {
         "webdfu": "^1.0.5"
     },

@@ -1,10 +1,9 @@
-# Upsilon.js
+# SaltyOS.js
 
-[![NPM](https://img.shields.io/npm/v/upsilon.js?style=flat-square)](https://www.npmjs.com/package/upsilon.js)
-![Version](https://img.shields.io/github/package-json/v/M4xi1m3/numworks.js?color=green&style=flat-square)
+![Version](https://img.shields.io/github/package-json/v/Gabi-Zar/salty-os.js?color=green&style=flat-square)
 ![License](https://img.shields.io/npm/l/upsilon.js?color=blue&style=flat-square)
 
-Utility classes to interact with a Numworks calculator using WebUSB. Some additional features is the calculator has Upsilon installed
+Utility classes to interact with a Numworks calculator using WebUSB. Some additional features is the calculator has SaltyOS installed
 
 ## Running the example
 
@@ -96,7 +95,7 @@ Now that we are connected to the NumWorks calculator, we can do stuff with it (Y
 
 #### Determining the model
 
-The function `getModel` can be used to determine the model of the connected calculator. It returns either `0100` or `0110`.
+The function `getModel` can be used to determine the model of the connected calculator. It returns either `0100`, `0110`, `0115` or `0120`.
 
 #### Getting information about the software
 
@@ -104,58 +103,65 @@ The function `getModel` can be used to determine the model of the connected calc
 
 ```js
 {
-  // Whether or not the software is valid, based on a magic number. If false, the rest of the structure is absent.
-  "magik": 4276994270,
+  // The mode of the calculator (legacy/bootloader)
+  "mode": "bootloader",
+  // The calculator model
+  "model": "0110"
   // Whether or not the software is considered as old (< Epsilon 11).
   // This is primarily used by the parser itself to know where to read data.
   "oldplatform": false,
-  // This part of the data is related to the Omega fork of Epsilon.
-  "omega": {
-    // Whether or not Omega is installed on the Numworks. If false, the rest of the Omega structure is absent
-    "installed": true
-    // The version of Omega detected on the calculator.
-    "version": "1.19.2",
-    // Username written in the system. "" if none.
-    "user": "M4x1m3"
-  },
-  "upsilon": {
-    // Whether or not Upsilon is installed on the Numworks. If false, the rest of the Upsilon structure is absent
-    "installed": true
-    // The version of Upsilon detected on the calculator.
-    "version": "1.0.0",
-    // The type of Upsilon : if it is a derivate or not
-    "osType": 2020704889,
-    // A more simple way to get if it is a derivate or not, it is based on the os type
-    "official": true
-  },
-  // The version of Epsilon installed on the calculator.
-  "version": "13.0.0",
+  // data of slotA
+  "SlotA": {
+    // Whether or not the software is valid, based on a magic number. If false, the rest of the structure is absent.
+    "magik": 4276994270,
+    // This part of the data is related to the Omega fork of Epsilon.
+    "omega": {
+      // Whether or not Omega is installed on the Numworks. If false, the rest of the Omega structure is absent
+      "installed": true
+      // The version of Omega detected on the calculator.
+      "version": "1.19.2",
+      // Username written in the system. "" if none.
+      "user": "M4x1m3"
+    },
+    "upsilon": {
+      // Whether or not Upsilon is installed on the Numworks. If false, the rest of the Upsilon structure is absent
+      "installed": true
+      // The version of Upsilon detected on the calculator.
+      "version": "1.0.0",
+      // The type of Upsilon : if it is a derivate or not
+      "osType": 2020704889,
+      // A more simple way to get if it is a derivate or not, it is based on the os type
+      "official": true
+    },
+    // The version of Epsilon installed on the calculator.
+    "version": "13.0.0",
 
-  "storage": {
-    // Address of the script storage
-    "address": 165467,
-    // Size of the script storage
-    "size": 65535
-  },
-  // Epsilon's external application information.
-  "external": {
-    // The start of the external application flash area.
-    "flashStart": 4294967295,
-    // The end of the external application flash area.
-    "flashEnd": 4294967295,
-    // The size of the external application flash area. (flashEnd - flashStart)
-    "flashSize": 0,
-    // The start of the external application RAM area.
-    "ramStart": 4294967295,
-    // The end of the external application RAM area.
-    "ramEnd": 4294967295,
-    // The size of the external application RAM area. (ramEnd - ramStart)
-    "ramSize": 0
-  },
-  // The mode of the calculator (legacy/bootloader)
-  "mode": "bootloader",
-  // The system's commit ID
-  "commit": " 651abf9",
+    "storage": {
+      // Address of the script storage
+      "address": 165467,
+      // Size of the script storage
+      "size": 65535
+    },
+    // Epsilon's external application information.
+    "external": {
+      // The start of the external application flash area.
+      "flashStart": 4294967295,
+      // The end of the external application flash area.
+      "flashEnd": 4294967295,
+      // The size of the external application flash area. (flashEnd - flashStart)
+      "flashSize": 0,
+      // The start of the external application RAM area.
+      "ramStart": 4294967295,
+      // The end of the external application RAM area.
+      "ramEnd": 4294967295,
+      // The size of the external application RAM area. (ramEnd - ramStart)
+      "ramSize": 0
+    },
+    // The system's commit ID
+    "commit": " 651abf9",
+  }
+  //data of slotB same structure as slotA
+  "SlotB": {}
   // The information about the running slot.
   "slot": {
     // Whether or not the slots informations are valid, based on a magic number. If false, the rest of the structure is absent.
@@ -167,8 +173,6 @@ The function `getModel` can be used to determine the model of the connected calc
     // The slot name. (A/B/Khi, it can be undefined if the address of the slot isn't known)
     "name": "A"
   },
-  // The system's commit ID
-  "commit": " 651abf9"
 }
 ```
 

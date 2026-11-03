@@ -291,7 +291,7 @@ class Numworks {
         for(var i = 0; i < len; i++) {
             var chr = dv.getUint8(index + i);
 
-            if (chr === 0) {
+            if (chr === 0 || chr === 0xFF) {
                 break;
             }
 
@@ -456,18 +456,6 @@ class Numworks {
             data["epsilon"]["usernameEnd"] = dv.getUint32(currentAddress, true);
             currentAddress += 4
             data["epsilon"]["usernameSize"] = data["epsilon"]["usernameEnd"] - data["epsilon"]["usernameStart"]
-
-            /*
-            // Read the username
-            this.device.startAddress = data["epsilon"]["usernameStart"];
-            let usernameBlob = await this.device.do_upload(this.transferSize, data["epsilon"]["usernameSize"] );
-            var usernameDv = new DataView(await usernameBlob.arrayBuffer());
-
-            data["username"] = this.__readFString(dv, 0, data["epsilon"]["usernameSize"]);
-            if (dv.getUint32(0x2C, false) !== data["magik"]) {
-                console.warn("PlatformInfo is not valid, end magic is not present at the end of the Userland info");
-            }
-            */
         }
 
         if (dv.getUint32(currentAddress, false) !== data["magik"]) {
@@ -602,6 +590,15 @@ class Numworks {
                     userlandHeaderAddress = address;
                     break;
                 }
+            }
+
+            // read Epsilon 22+ username
+            if (userland && userland["epsilon"]) {
+                this.device.startAddress = userland["epsilon"]["usernameStart"];
+                const usernameBlob = await this.device.do_upload(this.transferSize, userland["epsilon"]["usernameSize"]);
+                const usernameDv = new DataView(await usernameBlob.arrayBuffer());
+
+                userland["epsilon"]["username"] = this.__readFString(usernameDv, 0, userland["epsilon"]["usernameSize"]);
             }
 
             return {

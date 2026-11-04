@@ -850,6 +850,34 @@ class Numworks {
         }
     }
 
+    /**
+     * Write the username of a slot in the flash.
+     * Only works with slots having a username page (Epsilon 22+).
+     *
+     * @param   slot        Slot to write to ("A" or "B").
+     * @param   username    New username.
+     *
+     * @throw   Error       If the slot has no username page or if the username is too long.
+     */
+    async writeUsername(slot, username) {
+        const pinfo = await this.getPlatformInfo();
+        const epsilon = pinfo["slot" + slot]?.["epsilon"];
+
+        if (!epsilon) {
+            throw new Error("Slot " + slot + " has no username page");
+        }
+        if (username.length + 1 > epsilon["usernameSize"]) {
+            throw new Error("Username is too long (max " + (epsilon["usernameSize"] - 1) + " characters)");
+        }
+
+        const buffer = new Uint8Array(username.length + 1);
+        for (let i = 0; i < username.length; i++) {
+            buffer[i] = username.charCodeAt(i);
+        }
+
+        await this.__flashStorage(epsilon["usernameStart"], buffer.buffer);
+    }
+
     onUnexpectedDisconnect(event, callback) {
         if (this.device !== null && this.device.device_ !== null) {
             if (this.device.device_ === event.device) {

@@ -561,11 +561,21 @@ class Numworks {
             };
             let slotStart = data["slot"]["kernelHeader"] - 0x8;
             // Get the slot name from the list
-            data["slot"]["name"] = slotList[slotStart];
+            data["slot"]["kernelName"] = slotList[slotStart];
             // Check if the slot is valid
-            if (data["slot"]["name"] == undefined) {
+            if (data["slot"]["kernelName"] == undefined) {
                 console.warn("Slot name is not valid, the kernel header is not in the list");
             }
+
+            // Slot of the running userland
+            // It differs from the kernel one when a launcher jumps to the userland of the other slot.
+            let userlandName;
+            if (data["slot"]["userlandHeader"] === SLOT_START.A + 0x20000) {
+                userlandName = "A";
+            } else if (data["slot"]["userlandHeader"] === SLOT_START.B + 0x20000) {
+                userlandName = "B";
+            }
+            data["slot"]["name"] = userlandName ?? data["slot"]["kernelName"];
         }
         return data;
     }

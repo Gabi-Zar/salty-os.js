@@ -391,6 +391,36 @@ class Numworks {
             currentAddress += 4
         }
 
+        // SaltyOS infos
+        currentAddress = startAddress + 0x0C
+        data["saltyOS"] = {};
+        data["saltyOS"]["installed"] = dv.getUint32(currentAddress, false) === 0x536C7479
+
+        currentAddress += 4
+
+        if (data["saltyOS"]["installed"]) {
+            data["saltyOS"]["version"] = this.__readFString(dv, currentAddress, 8);
+            currentAddress += 8;
+
+            data["saltyOS"]["commit"] = this.__readFString(dv, currentAddress, 8);
+            currentAddress += 8
+
+            data["saltyOS"]["themesArea"] = { A: {}, B: {} };
+            data["saltyOS"]["themesArea"]["A"]["start"] = dv.getUint32(currentAddress, true);
+            currentAddress += 4
+            data["saltyOS"]["themesArea"]["A"]["end"] = dv.getUint32(currentAddress, true);
+            currentAddress += 4
+            data["saltyOS"]["themesArea"]["B"]["start"] = dv.getUint32(currentAddress, true);
+            currentAddress += 4
+            data["saltyOS"]["themesArea"]["B"]["end"] = dv.getUint32(currentAddress, true);
+            currentAddress += 4
+
+            if (dv.getUint32(currentAddress, false) !== 0x536C7479) {
+                console.warn("SaltyOS Magic not present at end")
+            }
+            currentAddress += 4
+        }
+
         return data
     }
 

@@ -411,10 +411,13 @@ class Numworks {
             currentAddress += 4
             data["saltyOS"]["themesArea"]["A"]["end"] = dv.getUint32(currentAddress, true);
             currentAddress += 4
+            data["saltyOS"]["themesArea"]["A"]["size"] = data["saltyOS"]["themesArea"]["A"]["end"] - data["saltyOS"]["themesArea"]["A"]["start"];
+            
             data["saltyOS"]["themesArea"]["B"]["start"] = dv.getUint32(currentAddress, true);
             currentAddress += 4
             data["saltyOS"]["themesArea"]["B"]["end"] = dv.getUint32(currentAddress, true);
             currentAddress += 4
+            data["saltyOS"]["themesArea"]["B"]["size"] = data["saltyOS"]["themesArea"]["B"]["end"] - data["saltyOS"]["themesArea"]["B"]["start"];
 
             if (dv.getUint32(currentAddress, false) !== 0x536C7479) {
                 console.warn("SaltyOS Magic not present at end")

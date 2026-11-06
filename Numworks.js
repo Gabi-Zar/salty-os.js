@@ -177,6 +177,7 @@ class Numworks {
         await navigator.usb.requestDevice({ "filters": [{"vendorId": 0x0483, "productId": 0xa291}]}).then(
             async selectedDevice => {
                 let interfaces = DFU.findDeviceDfuInterfaces(selectedDevice);
+                _this.dfuInterfaceCount = interfaces.length;
                 await _this.__fixInterfaceNames(selectedDevice, interfaces);
                 _this.device = await _this.__connect(new DFU.Device(selectedDevice, interfaces[0]));
                 successCallback();
@@ -606,6 +607,7 @@ class Numworks {
                 userlandName = "B";
             }
             data["slot"]["name"] = userlandName ?? data["slot"]["kernelName"];
+            if(this.dfuInterfaceCount < 2) data["slot"]["name"] = "Bootloader";
         }
         return data;
     }
@@ -729,6 +731,7 @@ class Numworks {
 
     async __autoConnectDevice(device) {
         let interfaces = DFU.findDeviceDfuInterfaces(device.device_);
+        this.dfuInterfaceCount = interfaces.length;
         await this.__fixInterfaceNames(device.device_, interfaces);
         device = await this.__connect(new DFU.Device(device.device_, interfaces[0]));
         return device;
